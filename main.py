@@ -39,26 +39,28 @@ def main():
         driver.implicitly_wait(5)
         for e in driver.find_elements(By.XPATH, '//*[@id="ec-reports-table"]/tbody/tr'):
             val = e.text.split("\n")
+            if (val[0] == 'BDJ'):
+                print(val)
+
             if (val != [""]):
                 data = {
                     "Symbol": val[0],
-                    "Secteur": val[2],
                     "Date_ExDiv": None,
                     "Date_Paiement": None,
-                    "Div_Annuel": float(val[5]),
+                    "Dividende": float(val[-2]),
                 }
 
-                if (val[3] == '-' or not search(r"\d{4}-\d{2}-\d{2}", val[3])):
+                if (val[-5] == '-' or not search(r"\d{4}-\d{2}-\d{2}", val[-5])):
                     data["Date_ExDiv"] = ''
                 else:
-                    dateExDiv = val[3].split("-")
+                    dateExDiv = val[-5].split("-")
                     data["Date_ExDiv"] = datetime(
                         int(dateExDiv[0]), int(dateExDiv[1]), int(dateExDiv[2]))
 
-                if (val[4] == '-' or not search(r"\d{4}-\d{2}-\d{2}", val[4])):
+                if (val[-4] == '-' or not search(r"\d{4}-\d{2}-\d{2}", val[-4])):
                     data["Date_Paiement"] = ''
                 else:
-                    datePaiement = val[4].split("-")
+                    datePaiement = val[-4].split("-")
                     data["Date_Paiement"] = datetime(
                         int(datePaiement[0]), int(datePaiement[1]), int(datePaiement[2]))
 
@@ -66,7 +68,7 @@ def main():
                 if (req == None):
                     dividende.insert_one(data)
                 else:
-                  dividende.find_one_and_replace({"Symbol": val[0]}, data)
+                    dividende.find_one_and_replace({"Symbol": val[0]}, data)
 
 
 if __name__ == "__main__":
