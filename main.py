@@ -27,6 +27,7 @@ except Exception:
 db = client['KronosFinancial']
 dividende = db['dividendes']
 
+
 def main():
     pathExe = ChromeDriverManager(path=r".\\Drivers").install()
     with webdriver.Chrome(service=ChromeService(pathExe), options=option) as driver:
@@ -39,8 +40,6 @@ def main():
         driver.implicitly_wait(5)
         for e in driver.find_elements(By.XPATH, '//*[@id="ec-reports-table"]/tbody/tr'):
             val = e.text.split("\n")
-            if (val[0] == 'BDJ'):
-                print(val)
 
             if (val != [""]):
                 data = {
@@ -48,6 +47,7 @@ def main():
                     "Date_ExDiv": None,
                     "Date_Paiement": None,
                     "Dividende": float(val[-2]),
+                    "Status": 'No Change',
                 }
 
                 if (val[-5] == '-' or not search(r"\d{4}-\d{2}-\d{2}", val[-5])):
@@ -64,11 +64,32 @@ def main():
                     data["Date_Paiement"] = datetime(
                         int(datePaiement[0]), int(datePaiement[1]), int(datePaiement[2]))
 
-                req = dividende.find_one({"Symbol": val[0]})
-                if (req == None):
-                    dividende.insert_one(data)
+                # ------------------ Rework ------------------
+                dataReq = data.copy()
+                del dataReq['Status']
+
+                if (dividende.find_one(dataReq) != None):
+                    data["Status"] = 'Update'
+
+                    if (dividende.find_one(data) != None):
+                        data["Status"] = 'No Change'
+                        dividende.find_one_and_replace(
+                            {"Symbol": val[0]}, data)
+
+                    data["Status"] = "New"
+
+                    if (dividende.find_one(data) != None):
+                        data["Status"] = 'No Change'
+                        dividende.find_one_and_replace(
+                            {"Symbol": val[0]}, data)
                 else:
-                    dividende.find_one_and_replace({"Symbol": val[0]}, data)
+                    if (dividende.find_one({ 'Symbol': val[0] })):
+                        data["Status"] = 'Update'
+                        dividende.find_one_and_replace(
+                            {"Symbol": val[0]}, data)
+                    else:
+                        data["Status"] = 'New'
+                        dividende.insert_one(data)
 
 
 if __name__ == "__main__":
