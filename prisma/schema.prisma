@@ -1,0 +1,58 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+// generator
+generator client {
+  provider             = "prisma-client-py"
+  recursive_type_depth = 5
+}
+
+datasource db {
+  provider = "mongodb"
+  url      = env("DATABASE_URL")
+}
+
+enum Status {
+  NEW
+  UPDATED
+  NOT_CHANGED
+}
+
+model Stock {
+  id        String     @id @default(auto()) @map("_id") @db.ObjectId
+  symbol    String     @unique
+  name      String
+  sector    String
+  price     Float
+  status    Status
+  dividende Dividende?
+  buy       Buy[]
+}
+
+model Dividende {
+  id                String   @id @default(auto()) @map("_id") @db.ObjectId
+  dateExDividende   DateTime
+  datePayment       DateTime
+  dividendePerShare Float
+  status            Status
+  stockSymbol       String   @unique
+  stock             Stock    @relation(fields: [stockSymbol], references: [symbol])
+}
+
+model Buy {
+  id          String   @id @default(auto()) @map("_id") @db.ObjectId
+  date        DateTime
+  price       Float
+  amount      Float
+  sell        Sell?
+  stockSymbol String
+  stock       Stock    @relation(fields: [stockSymbol], references: [symbol])
+}
+
+model Sell {
+  id    String   @id @default(auto()) @map("_id") @db.ObjectId
+  date  DateTime
+  price Float
+  buyId String   @unique @db.ObjectId
+  buy   Buy      @relation(fields: [buyId], references: [id])
+}
