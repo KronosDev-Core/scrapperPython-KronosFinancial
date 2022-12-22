@@ -111,7 +111,7 @@ async def main():
                         }
                     )
                 
-                findBySymbolDividende: Dividende | None = await db.dividende.find_unique(
+                findBySymbolDividende: Dividende | None = await db.dividende.find_first(
                     where={
                         'stockSymbol': symbol
                     }
@@ -136,11 +136,9 @@ async def main():
                         }
                     )
                 elif (findBySymbolDividende != None and findByAllDataDividende == None):
-                    await Dividende.prisma().update(
-                        where={
-                            'stockSymbol': symbol,
-                        },
+                    await Dividende.prisma().create(
                         data={
+                            'stockSymbol': symbol,
                             'dateExDividende': dateExDividende,
                             'datePayment': datePayment,
                             'dividendePerShare': dividendePerShare,
@@ -148,7 +146,7 @@ async def main():
                         }
                     )
                 else:
-                    await Dividende.prisma().update(
+                    await Dividende.prisma().update_many(
                         where={
                             'stockSymbol': symbol
                         },
