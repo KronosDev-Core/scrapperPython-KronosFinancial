@@ -1,5 +1,4 @@
 import asyncio
-from typing import Any, Coroutine
 from selenium import webdriver
 from selenium.webdriver.chrome.service import Service as ChromeService
 from selenium.webdriver.chrome.options import Options
@@ -9,8 +8,8 @@ from webdriver_manager.chrome import ChromeDriverManager
 from datetime import datetime
 from re import search
 from prisma import Prisma
-from prisma.enums import Status
-from prisma.models import Dividende, Stock
+from prisma.enums import Status, BuyStatus
+from prisma.models import Dividend, Stock
 
 date = datetime.now().strftime("%d-%m-%Y")
 
@@ -25,7 +24,7 @@ async def main():
     db = Prisma(auto_register=True)
     await db.connect()
 
-    pathExe = ChromeDriverManager(path=r".\\Drivers").install()
+    pathExe = ChromeDriverManager(path=r"Drivers").install()
     with webdriver.Chrome(service=ChromeService(pathExe), options=option) as driver:
         driver.get("https://www.etoro.com/fr/investing/dividend-calendar/")
         driver.implicitly_wait(5)
@@ -42,21 +41,21 @@ async def main():
                 By.XPATH, f'//*[@id="ec-reports-table"]/tbody/tr[{idx}]/td[1]/a/div/span[2]').text
             sector: str = driver.find_element(
                 By.XPATH, f'//*[@id="ec-reports-table"]/tbody/tr[{idx}]/td[2]/span[2]').text
-            dateExDividendeData: str = driver.find_element(
+            dateExDividendData: str = driver.find_element(
                 By.XPATH, f'//*[@id="ec-reports-table"]/tbody/tr[{idx}]/td[3]/span[2]').text
             datePaymentData: str = driver.find_element(
                 By.XPATH, f'//*[@id="ec-reports-table"]/tbody/tr[{idx}]/td[4]/span[2]').text
-            dividendePerShareData: str = driver.find_element(
+            dividendPerShareData: str = driver.find_element(
                 By.XPATH, f'//*[@id="ec-reports-table"]/tbody/tr[{idx}]/td[6]/span[2]').text
 
             if (symbol != ""):
-                dateExDividende: datetime = datetime.min
+                dateExDividend: datetime = datetime.min
                 datePayment: datetime = datetime.min
-                dividendePerShare: float = .0
+                dividendPerShare: float = .0
 
-                if (search(r"\d{4}-\d{2}-\d{2}", dateExDividendeData)):
-                    dateExDiv: list[str] = dateExDividendeData.split("-")
-                    dateExDividende = datetime(
+                if (search(r"\d{4}-\d{2}-\d{2}", dateExDividendData)):
+                    dateExDiv: list[str] = dateExDividendData.split("-")
+                    dateExDividend = datetime(
                         int(dateExDiv[0]), int(dateExDiv[1]), int(dateExDiv[2]))
 
                 if (search(r"\d{4}-\d{2}-\d{2}", datePaymentData)):
@@ -64,8 +63,8 @@ async def main():
                     datePayment = datetime(
                         int(datePay[0]), int(datePay[1]), int(datePay[2]))
 
-                if (dividendePerShareData != ''):
-                    dividendePerShare = float(dividendePerShareData)
+                if (dividendPerShareData != ''):
+                    dividendPerShare = float(dividendPerShareData)
 
                 findBySymbolStock: Stock | None = await Stock.prisma().find_unique(
                     where={
@@ -110,47 +109,47 @@ async def main():
                             'status': Status.NOT_CHANGED,
                         }
                     )
-                
-                findBySymbolDividende: Dividende | None = await db.dividende.find_first(
+
+                findBySymbolDividend: Dividend | None = await db.dividend.find_first(
                     where={
                         'stockSymbol': symbol
                     }
                 )
-                findByAllDataDividende: Dividende | None = await db.dividende.find_first(
+                findByAllDataDividend: Dividend | None = await db.dividend.find_first(
                     where={
                         'stockSymbol': symbol,
-                        'dateExDividende': dateExDividende,
+                        'dateExDividend': dateExDividend,
                         'datePayment': datePayment,
-                        'dividendePerShare': dividendePerShare,
+                        'dividendPerShare': dividendPerShare,
                     }
                 )
 
-                if (findBySymbolDividende == None and findByAllDataDividende == None):
-                    await Dividende.prisma().create(
+                if (findBySymbolDividend == None and findByAllDataDividend == None):
+                    await Dividend.prisma().create(
                         data={
-                            'stockSymbol': symbol,
-                            'dateExDividende': dateExDividende,
+                            'dateExDividend': dateExDividend,
                             'datePayment': datePayment,
-                            'dividendePerShare': dividendePerShare,
-                            'status': Status.NEW
+                            'dividendPerShare': dividendPerShare,
+                            'status': Status.NEW,
+                            'stockSymbol': symbol
                         }
                     )
-                elif (findBySymbolDividende != None and findByAllDataDividende == None):
-                    await Dividende.prisma().create(
+                elif (findBySymbolDividend != None and findByAllDataDividend == None):
+                    await Dividend.prisma().create(
                         data={
-                            'stockSymbol': symbol,
-                            'dateExDividende': dateExDividende,
+                            'dateExDividend': dateExDividend,
                             'datePayment': datePayment,
-                            'dividendePerShare': dividendePerShare,
-                            'status': Status.NEW
+                            'dividendPerShare': dividendPerShare,
+                            'status': Status.NEW,
+                            'stockSymbol': symbol
                         }
                     )
                 else:
-                    await Dividende.prisma().update_many(
+                    await Dividend.prisma().update_many(
                         where={
                             'stockSymbol': symbol
                         },
-                            data={
+                        data={
                             'status': Status.NOT_CHANGED,
                         }
                     )
