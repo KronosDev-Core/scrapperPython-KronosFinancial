@@ -1,15 +1,11 @@
-// This is your Prisma schema file,
-// learn more about it in the docs: https://pris.ly/d/prisma-schema
-
-// generator
-generator client {
-  provider             = "prisma-client-py"
-  recursive_type_depth = 5
-}
-
 datasource db {
   provider = "mongodb"
   url      = env("DATABASE_URL")
+}
+
+generator client {
+  provider      = "prisma-client-py"
+  binaryTargets = ["native", "darwin"]
 }
 
 enum Status {
@@ -18,35 +14,42 @@ enum Status {
   NOT_CHANGED
 }
 
-model Stock {
-  id        String     @id @default(auto()) @map("_id") @db.ObjectId
-  symbol    String     @unique
-  name      String
-  sector    String
-  price     Float
-  status    Status
-  dividende Dividende[]
+enum BuyStatus {
+  PENDING
+  BUY
+  SOLD
 }
 
-model Dividende {
-  id                String   @id @default(auto()) @map("_id") @db.ObjectId
-  dateExDividende   DateTime
-  datePayment       DateTime
-  dividendePerShare Float
-  status            Status
-  stockSymbol       String   
-  stock             Stock    @relation(fields: [stockSymbol], references: [symbol])
-  buy               Buy[]
+model Stock {
+  id       String     @id @default(auto()) @map("_id") @db.ObjectId
+  symbol   String     @unique
+  name     String
+  sector   String
+  price    Float
+  status   Status
+  dividend Dividend[]
+}
+
+model Dividend {
+  id               String   @id @default(auto()) @map("_id") @db.ObjectId
+  dateExDividend   DateTime
+  datePayment      DateTime
+  dividendPerShare Float
+  status           Status
+  stockSymbol      String
+  stock            Stock    @relation(fields: [stockSymbol], references: [symbol])
+  buy              Buy[]
 }
 
 model Buy {
-  id          String       @id @default(auto()) @map("_id") @db.ObjectId
-  date        DateTime
-  price       Float
-  amount      Float
-  sell        Sell?
-  dividendeId String       @db.ObjectId
-  dividende   Dividende    @relation(fields: [dividendeId], references: [id])
+  id         String    @id @default(auto()) @map("_id") @db.ObjectId
+  date       DateTime
+  price      Float
+  amount     Float
+  status     BuyStatus
+  sell       Sell?
+  dividendId String    @db.ObjectId
+  dividend   Dividend  @relation(fields: [dividendId], references: [id])
 }
 
 model Sell {
