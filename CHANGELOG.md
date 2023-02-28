@@ -1,3 +1,24 @@
+## [1.1.5]() 02-28-2023
+
+### Features
+
+- 
+
+### Performance improvement
+
+-
+
+### Improvement
+
+- Update `package.json`
+- Update `.gitignore`
+
+### Bugs fixes
+
+-
+
+<br/>
+
 ## [1.1.4]() 02-10-2023
 
 ### Features
