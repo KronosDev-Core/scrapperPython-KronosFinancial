@@ -1,20 +1,20 @@
 {
-  "name": "my-prisma-project",
-  "version": "1.1.4",
+  "name": "scrapper-kronosfinancial",
+  "version": "1.1.5",
   "description": "",
   "main": "index.js",
   "scripts": {
-    "install": "pip install prisma",
+    "install": "rm -rf Drivers && pip install -q prisma selenium webdriver-manager",
     "generate": "prisma generate",
-    "start": "py main.py"
+    "start": "pnpm install && python3 main.py"
   },
   "keywords": [],
   "author": "",
   "license": "ISC",
   "devDependencies": {
-    "prisma": "^3.13.0"
+    "prisma": "^4.10.1"
   },
   "dependencies": {
-    "@prisma/client": "^3.13.0"
+    "@prisma/client": "^4.10.1"
   }
 }
