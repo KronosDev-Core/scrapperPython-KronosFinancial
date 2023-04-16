@@ -10,6 +10,7 @@ from re import search
 from prisma import Prisma
 from prisma.enums import Status, BuyStatus
 from prisma.models import Dividend, Stock
+from json import dumps
 
 date = datetime.now().strftime("%d-%m-%Y")
 
@@ -23,6 +24,41 @@ option.add_experimental_option('excludeSwitches', ['enable-logging'])
 async def main():
     db = Prisma(auto_register=True)
     await db.connect()
+
+    await Dividend.prisma().update_many(
+        data={
+            'status': Status.NOT_CHANGED
+        },
+        where={
+            'status': {
+                'not': Status.NOT_CHANGED
+            }
+        }
+    )
+
+    await Stock.prisma().update_many(
+        data={
+            'status': Status.NOT_CHANGED
+        },
+        where={
+            'status': {
+                'not': Status.NOT_CHANGED
+            }
+        }
+    )
+
+    counter: dict[str, int] = {
+        'stock': {
+            'new': 0,
+            'updated': 0,
+            'notChanged': 0,
+        },
+        'dividend': {
+            'new': 0,
+            'updated': 0,
+            'notChanged': 0,
+        }
+    }
 
     pathExe = ChromeDriverManager(path=r"Drivers").install()
     with webdriver.Chrome(service=ChromeService(pathExe), options=option) as driver:
@@ -71,6 +107,7 @@ async def main():
                         'symbol': symbol
                     }
                 )
+
                 findByAllDataStock: Stock | None = await Stock.prisma().find_first(
                     where={
                         'symbol': symbol,
@@ -89,6 +126,7 @@ async def main():
                             'status': Status.NEW,
                         }
                     )
+                    counter['stock']['new'] += 1
                 elif (findBySymbolStock != None and findByAllDataStock == None):
                     await Stock.prisma().update(
                         where={
@@ -100,22 +138,27 @@ async def main():
                             'status': Status.UPDATED,
                         }
                     )
+                    counter['stock']['updated'] += 1
                 else:
-                    await Stock.prisma().update(
-                        where={
-                            'symbol': symbol
-                        },
-                        data={
-                            'status': Status.NOT_CHANGED,
-                        }
-                    )
+                    counter['stock']['notChanged'] += 1
 
-                findBySymbolDividend: Dividend | None = await db.dividend.find_first(
+                findBySymbolDividend: Dividend | None = await Dividend.prisma().find_first(
                     where={
                         'stockSymbol': symbol
                     }
                 )
-                findByAllDataDividend: Dividend | None = await db.dividend.find_first(
+
+                findByOrDateDataDividend: Dividend | None = await Dividend.prisma().find_first(
+                    where={
+                        'stockSymbol': symbol,
+                        'OR': [
+                            {'dateExDividend': dateExDividend},
+                            {'datePayment': datePayment},
+                        ]
+                    }
+                )
+
+                findByAllDataDividend: Dividend | None = await Dividend.prisma().find_first(
                     where={
                         'stockSymbol': symbol,
                         'dateExDividend': dateExDividend,
@@ -124,7 +167,8 @@ async def main():
                     }
                 )
 
-                if (findBySymbolDividend == None and findByAllDataDividend == None):
+                # not found or found by symbol
+                if (not (findBySymbolDividend and findByAllDataDividend and findByOrDateDataDividend)) or (findBySymbolDividend and (not findByAllDataDividend) and (not findByOrDateDataDividend)):
                     await Dividend.prisma().create(
                         data={
                             'dateExDividend': dateExDividend,
@@ -134,27 +178,34 @@ async def main():
                             'stockSymbol': symbol
                         }
                     )
-                elif (findBySymbolDividend != None and findByAllDataDividend == None):
-                    await Dividend.prisma().create(
-                        data={
-                            'dateExDividend': dateExDividend,
-                            'datePayment': datePayment,
-                            'dividendPerShare': dividendPerShare,
-                            'status': Status.NEW,
-                            'stockSymbol': symbol
-                        }
-                    )
-                else:
+                    counter['dividend']['new'] += 1
+                # find by symbol and one of the two dates
+                elif findByOrDateDataDividend and (not findByAllDataDividend):
                     await Dividend.prisma().update_many(
-                        where={
+                        data={
+                            'dateExDividend': dateExDividend,
+                            'datePayment': datePayment,
+                            'dividendPerShare': dividendPerShare,
+                            'status': Status.UPDATED,
                             'stockSymbol': symbol
                         },
-                        data={
-                            'status': Status.NOT_CHANGED,
+                        where={
+                            'stockSymbol': symbol,
+                            'OR': [
+                                {'dateExDividend': dateExDividend},
+                                {'datePayment': datePayment},
+                            ]
                         }
                     )
+                    counter['dividend']['updated'] += 1
+                else:
+                    counter['dividend']['notChanged'] += 1
 
     await db.disconnect()
+    print(f"Stocks: {counter['stock']['new']} new, {counter['stock']['updated']} updated, {counter['stock']['notChanged']} not changed")
+    print(f"Dividends: {counter['dividend']['new']} new, {counter['dividend']['updated']} updated, {counter['dividend']['notChanged']} not changed")
+    # and total stats
+    print(f"Total: {counter['stock']['new'] + counter['stock']['updated'] + counter['stock']['notChanged']} stocks, {counter['dividend']['new'] + counter['dividend']['updated'] + counter['dividend']['notChanged']} dividends")
 
 if __name__ == "__main__":
     asyncio.run(main())
