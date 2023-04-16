@@ -1,4 +1,26 @@
-## [1.1.5]() 02-28-2023
+## [1.1.6]() 04-16-2023
+
+### Features
+
+- 
+
+### Performance improvement
+
+-
+
+### Improvement
+
+- Update `package.json`
+- Update `.gitignore`
+- Update `main.py`
+
+### Bugs fixes
+
+- fix some bugs in `main.py`
+
+<br/>
+
+## [1.1.5](https://github.com/KronosDev-Core/scrapperPython-KronosFinancial/pull/2) 02-28-2023
 
 ### Features
 
@@ -19,7 +41,7 @@
 
 <br/>
 
-## [1.1.4]() 02-10-2023
+## [1.1.4](https://github.com/KronosDev-Core/scrapperPython-KronosFinancial/pull/1) 02-10-2023
 
 ### Features
 
